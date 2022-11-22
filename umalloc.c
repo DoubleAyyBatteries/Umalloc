@@ -32,7 +32,7 @@ void initialize()
     memset(heap, 0, sizeof(heap));
 
     struct eblock *temp = head;
-    temp->dataSize = default_size - sizeof(head);
+    temp->dataSize = default_size - sizeof(struct eblock);
     temp->isFree = 1;
     memcpy(&heap[0], temp, sizeof(struct eblock));
     init = 0;
@@ -55,30 +55,41 @@ void *umalloc(size_t bytes)
         return NULL;
     }
 
+    int assigned_bytes = bytes;
+    if(assigned_bytes % 8 > 0)
+    {
+        assigned_bytes = (assigned_bytes + 8) - (assigned_bytes % 8);
+    }
+    
     if (init == -1)
     {
         initialize();
 
-        int assigned_bytes = bytes;
-        if(assigned_bytes % 8 > 0)
-        {
-            assigned_bytes = (assigned_bytes + 8) - (assigned_bytes % 8);
-        }
-
+        newEBlock(head, assigned_bytes + sizeof(struct eblock), sizeof(struct eblock) + assigned_bytes);
+        head->isFree = 0;
+        head->dataSize = assigned_bytes;
+        return head;
+        
+    }
+    else
+    {
         struct eblock *temp = head;
-        while(temp != NULL && temp->isFree != 1)
+        init = 0;
+        while(init < default_size)
         {
-            if(temp->dataSize < assigned_bytes)
-            {
-                init += temp->dataSize + sizeof(struct eblock);
-                temp = next(temp);
-            }
-            else
+            if(temp->isFree == 1 && temp->dataSize >= assigned_bytes)
             {
                 break;
             }
+            else
+            {
+                printf("before init = %d\n", init);
+                init += temp->dataSize + sizeof(struct eblock);
+                temp = next(temp);
+                printf("init = %d\n", init);
+            }
         }
-        if(temp == NULL)
+        if(init >= default_size)
         {
             perror("No more free space");
         }
@@ -88,6 +99,7 @@ void *umalloc(size_t bytes)
             newEBlock(temp, assigned_bytes + sizeof(struct eblock), init + sizeof(struct eblock) + assigned_bytes);
             temp->isFree = 0;
             temp->dataSize = assigned_bytes;
+            return temp;
         }
         else
         {
@@ -95,8 +107,8 @@ void *umalloc(size_t bytes)
             temp->isFree = 0;
             return temp;
         }
+        return NULL;
     }
-    return NULL;
 }
 
 void ufree(void *ptr)
@@ -106,7 +118,22 @@ void ufree(void *ptr)
         return;
     }
 
-    // struct eblock *freePtr = (struct eBlock*)ptr;
+    struct eblock *freePtr = (struct eBlock*)&ptr;
+
+    freePtr->isFree = 1;
+    if(next(freePtr)->isFree == 1)
+    {
+        freePtr->dataSize += next(freePtr)->dataSize + sizeof(struct eblock);
+    }
+    struct eblock *temp = head;
+    while(next(temp) != freePtr)
+    {
+        temp = next(temp);
+    }
+    if(temp->isFree == 1)
+    {
+        temp->dataSize += freePtr->dataSize + sizeof(struct eblock);
+    }
 }
 
 void printArray()
@@ -116,15 +143,26 @@ void printArray()
         if(heap[i] != 0)
         {
             printf("heap[%d] = %d\n", i, heap[i]);
+            printf("heap[%d]->isFree = %d\n", i, next(head)->isFree);
+            printf("heap[%d]->dataSize = %ld\n", i, next(head)->dataSize);
         }
     }
-    printf("head isFree = %d\n", head->isFree);
-    printf("head dataSize = %ld\n", head->dataSize);
+    struct eblock *temp = head;
+    int count = 0;
+    while(count + temp->dataSize + sizeof(struct eblock) <= default_size)
+    {
+        printf("rheap[%d] = %d\n", count, heap[count]);
+        printf("rheap[%d]->isFree = %d\n", count, temp->isFree);
+        printf("rheap[%d]->dataSize = %ld\n", count, temp->dataSize);
+        count += temp->dataSize + sizeof(struct eblock);
+        temp = next(temp);
+    }
 }
 
 int main(int argc, char *argv[])
 {
-    umalloc(1000);
+    umalloc(1048576);
+    umalloc(10485760);
     printArray();
     // size_t temp;
     // memcpy(&temp, &heap[8], sizeof(size_t));
