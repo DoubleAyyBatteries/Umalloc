@@ -38,6 +38,15 @@ void initialize()
     init = 0;
 }
 
+
+void newEBlock(struct eblock *recentlyAllocated, int size, int index)
+{
+    struct eblock *newKid = next(recentlyAllocated);
+    newKid->dataSize = recentlyAllocated->dataSize - size;
+    newKid->isFree = 1;
+    memcpy(&heap[index], newKid, sizeof(struct eblock));
+}
+
 void *umalloc(size_t bytes)
 {
 
@@ -51,14 +60,17 @@ void *umalloc(size_t bytes)
         initialize();
 
         int assigned_bytes = bytes;
-        assigned_bytes = (assigned_bytes + 8) - (assigned_bytes % 8);
+        if(assigned_bytes % 8 > 0)
+        {
+            assigned_bytes = (assigned_bytes + 8) - (assigned_bytes % 8);
+        }
 
         struct eblock *temp = head;
         while(temp != NULL && temp->isFree != 1)
         {
             if(temp->dataSize < assigned_bytes)
             {
-                init += temp->dataSize + 16;
+                init += temp->dataSize + sizeof(struct eblock);
                 temp = next(temp);
             }
             else
@@ -93,14 +105,8 @@ void ufree(void *ptr)
     {
         return;
     }
-}
 
-void newEBlock(struct eblock *recentlyAllocated, int size, int index)
-{
-    struct eblock *newKid;
-    newKid->dataSize = recentlyAllocated->dataSize - size;
-    newKid->isFree = 1;
-    memcpy(&heap[index], newKid, sizeof(struct eblock));
+    // struct eblock *freePtr = (struct eBlock*)ptr;
 }
 
 void printArray()
@@ -118,9 +124,9 @@ void printArray()
 
 int main(int argc, char *argv[])
 {
-    initialize();
+    umalloc(1000);
     printArray();
-    size_t temp;
-    memcpy(&temp, &heap[8], sizeof(size_t));
-    printf("%ld", temp);
+    // size_t temp;
+    // memcpy(&temp, &heap[8], sizeof(size_t));
+    // printf("%ld", temp);
 }
