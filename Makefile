@@ -1,9 +1,13 @@
-TARGET = umalloc
-CC     = gcc
-CFLAGS = -g -Wall -Wvla -fsanitize=address
+CC = gcc
+CFLAGS = -g -w -fsanitize=address,undefined
 
-$(TARGET): $(TARGET).c
-	$(CC) $(CFLAGS) -o $@ $^
+all: umalloc memgrind
+
+umalloc:
+	$(CC) $(CFLAGS) -o umalloc umalloc.c
+
+memgrind:
+	$(CC) $(CFLAGS) -o memgrind memgrind.c
 
 clean:
-	rm -rf $(TARGET) *.o *.a *.dylib *.dSYM
+	rm -rf umalloc memgrind *.o *.a *.dylib *.dSYM
