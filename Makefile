@@ -1,13 +1,13 @@
 CC = gcc
-CFLAGS = -g -w -fsanitize=address,undefined
+CFLAGS = -g -Wall
 
-all: umalloc memgrind
+all: memgrind
 
-umalloc:
-	$(CC) $(CFLAGS) -o umalloc umalloc.c
+mymalloc: umalloc.c
+	$(CC) $(CFLAGS) -o mm umalloc.c
 
-memgrind:
-	$(CC) $(CFLAGS) -o memgrind memgrind.c
-
+memgrind: umalloc.c memgrind.c
+	$(CC) $(CFLAGS) -c umalloc.c
+	$(CC) $(CFLAGS) -o memgrind memgrind.c umalloc.o
 clean:
-	rm -rf umalloc memgrind *.o *.a *.dylib *.dSYM
+	rm -f umalloc.o memgrind
