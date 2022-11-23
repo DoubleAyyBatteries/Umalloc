@@ -180,15 +180,17 @@ void prettyPrint()
     struct eblock *temp = head;
     int count = 0;
     int inUse = 0;
-    int free = default_size;
+    int free = 0;
     while(count + temp->dataSize + sizeof(struct eblock) <= default_size)
     {
         if(temp->isFree == 0)
         {
-            free -= temp->dataSize;
             inUse += temp->dataSize;
         }
-        free -= sizeof(struct eblock);
+        else
+        {
+            free += temp->dataSize;
+        }
         inUse += sizeof(struct eblock);
         count += temp->dataSize + sizeof(struct eblock);
         temp = next(temp);
