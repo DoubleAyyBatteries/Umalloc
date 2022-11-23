@@ -49,15 +49,14 @@ void *umalloc(size_t bytes, char* file, int line)
 
     if (bytes <= 0)
     {
-        printf("Error on malloc(): byte size is less than or equal to 0 in line %d of %s", line, file);
-        exit(1);
+        printf("Error on malloc(): byte size is less than or equal to 0 in line %d of %s\n", line, file);
+        return NULL;
     }
 
     if (bytes >= default_size - sizeof(struct eblock) + 1)
     {
+        printf("Error on malloc(): byte size is greater than heap size in line %d of %s\n", line, file);
         return NULL;
-        printf("Error on malloc(): byte size is greater than heap size in line %d of %s", line, file);
-        exit(1);
     }
 
     int assigned_bytes = bytes;
@@ -83,7 +82,6 @@ void *umalloc(size_t bytes, char* file, int line)
         int freeblocksize = 0;
         struct eblock *temp = head;
         init = 0;
-        int freeflag = 0;
         while(init < default_size)
         {
             if (temp->isFree)
@@ -106,18 +104,18 @@ void *umalloc(size_t bytes, char* file, int line)
         {
             if (freeblocksize > assigned_bytes)
             {
-                printf("Error on malloc(): there is enough free memory, but there is no block large enough for the allocation in line %d of %s", line, file);
-                exit(1);
+                printf("Error on malloc(): there is enough free memory, but there is no block large enough for the allocation in line %d of %s\n", line, file);
+                return NULL;
             }
             else if (freeblocksize > 0)
             {
-                printf("Error on malloc(): memory is not full but there is not enough free memory for the allocation in line %d of %s", line, file);
-                exit(1);
+                printf("Error on malloc(): memory is not full but there is not enough free memory for the allocation in line %d of %s\n", line, file);
+                return NULL;
             }
             else
             {
-                printf("Error on malloc(): there is no free memory in line %d of %s", line, file);
-                exit(1);
+                printf("Error on malloc(): there is no free memory in line %d of %s\n", line, file);
+                return NULL;
             }
         }
         else if(temp->dataSize >= assigned_bytes + sizeof(struct eblock) + 8)
@@ -146,25 +144,16 @@ void ufree(void *ptr, char* file, int line)
 {
     if(ptr == NULL)
     {
-        printf("Error on free(): attempted to free() a null pointer in line %d of %s", line, file);
-        exit(1);
+        printf("Error on free(): attempted to free() a null pointer in line %d of %s\n", line, file);
+        return NULL;
     }
 
     char *testptr = (char *)ptr;
-    int isInHeap = 0;
-    for(int i = 0; i < default_size; i++)
-    {
-        if (testptr == &heap[i])
-        {
-            isInHeap = 1;
-            break;
-        }
-    }
 
-    if(!isInHeap)
+    if(testptr < &heap[0] || testptr > &heap[default_size-1])
     {
-        printf("Error on free(): No pointer found in line %d of %s", line, file);
-        exit(1);
+        printf("Error on free(): No pointer found in line %d of %s\n", line, file);
+        return NULL;
     }
     struct eblock *currBlock = head;
     struct eblock *prevBlock = NULL;
@@ -181,15 +170,15 @@ void ufree(void *ptr, char* file, int line)
         prevBlock = currBlock;
         currBlock = next(currBlock);
     }
-    if (count + currBlock->dataSize + sizeof(struct eblock) >= default_size)
+    if (count + currBlock->dataSize + sizeof(struct eblock) >= default_size && (char *)currBlock != freePtr)
     {
-        printf("Error on free(): Free()ing pointer that was not allocated by malloc() properly in line %d of %s", line, file);
-        exit(1);  
+        printf("Error on free(): Free()ing pointer that was not allocated by malloc() properly in line %d of %s\n", line, file);
+        return NULL;
     }
 
     if(currBlock->isFree == 1){
-        printf("Error on free(): Free()ing pointer that was already freed in line %d of %s", line, file);
-        exit(1);
+        printf("Error on free(): Free()ing pointer that was already freed in line %d of %s\n", line, file);
+        return NULL;
     }
     else{
         currBlock->isFree = 1;
@@ -256,22 +245,23 @@ void prettyPrint()
 
 int main(int argc, char *argv[])
 {
-    char *x = (char *)malloc(5 * sizeof(char));
-    char *y = (char *)malloc(5 * sizeof(char));
-    char *z = (char *)malloc(3 * sizeof(char));
-    char *a = (char *)malloc(3 * sizeof(char));
-    printArray();
-    free(x);
-    printf("\n");
-    printArray();
-    free(y);
-    printf("\n");
-    printArray();
-    free(a);
-    printf("\n");
-    printArray();
+    // char *x = (char *)malloc(5 * sizeof(char));
+    // char *y = (char *)malloc(5 * sizeof(char));
+    // char *z = (char *)malloc(3 * sizeof(char));
+    // char *a = (char *)malloc(3 * sizeof(char));
+    // printArray();
+    // free(x);
+    // printf("\n");
+    // printArray();
+    // free(y);
+    // printf("\n");
+    // printArray();
+    // free(a);
+    // printf("\n");
+    // printArray();
     // printArray();
     // size_t temp;
     // memcpy(&temp, &heap[8], sizeof(size_t));
     // printf("%ld", temp);
+    return 0;
 }
