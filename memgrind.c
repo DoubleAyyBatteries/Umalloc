@@ -7,12 +7,12 @@
 #include <errno.h>
 #include "umalloc.h"
 
-int memorygrind()
+int main()
 {
     int* x;
     int* y;
     int size;
-    int* pointers[10000];
+    int* pointers[1000000];
 
     //case 0: Consistency
     x = (int *) malloc(1);
@@ -50,24 +50,12 @@ int memorygrind()
 
 
     //case 2: Basic Coalescence
-    size = 1;
-    x = (int *) malloc(size);
     printf("\ncase 2:\n");
-    while(x != NULL)
-    {
-        free(x);
-        size = size * 2;
-        x = (int *) malloc(size);
-    }
-    size = size / 2;
+    size = default_size / 2;
     x = (int *) malloc(size);
-    while(x == NULL)
-    {
-        size = size / 2;
-        x = (int *) malloc(size);
-    }
     printf("allocated 1/2 of maximal allocation where size = %d\n", size);
-    size = size / 2;
+    
+    size = size / 2 - 32;
     y = (int *) malloc(size);
     printf("allocated 1/4 of maximal allocation where size = %d\n", size);
     free(x);
@@ -94,24 +82,24 @@ int memorygrind()
         pointers[i] = (int*)malloc(1024);
     }
     printf("pointers is now over 9000\n");
-    for(int i = 9216; i < 10000; i++)
+    for(int i = 9216; i < default_size; i++)
     {
         pointers[i] = (int*)malloc(1);
         size = i;
         if(pointers[i] == NULL)
         {
-            printf("\nSTOP\n");
             break;
         }
     }
     printf("saturation of space (without 9216 allocations): %d\n", (size-9217));
 
+
     //case 4: time overhead
-    free(pointers[size]);
+    free(pointers[size-1]);
     struct timeval c4Start, c4End;
     printf("\ncase 4:\ntime start!\n");
     gettimeofday(&c4Start, 0);
-    pointers[size] = (int*)malloc(1);
+    pointers[size-1] = (int*)malloc(1);
     gettimeofday(&c4End, 0);
     printf("time end!\n");
     int totalTime = (c4End.tv_sec-c4Start.tv_sec) * 1000000 + (c4End.tv_usec-c4Start.tv_usec);
@@ -120,7 +108,7 @@ int memorygrind()
 
     //case 5: intermediate coalescence
     printf("\ncase 5:\nfreeing memory...\n");
-    for(int i = 0; i < size+1; i++)
+    for(int i = 0; i < size; i++)
     {
         free(pointers[i]);
     }
