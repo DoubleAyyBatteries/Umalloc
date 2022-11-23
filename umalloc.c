@@ -134,27 +134,24 @@ void ufree(void *ptr, char* file, int line)
     {
         if(freePtr == &heap[count])
         {
-            
-            printf("found block!\n");
+            // printf("found block!\n");
             break;
         }
         count += sizeof(struct eblock) + currBlock->dataSize;
         prevBlock = currBlock;
         currBlock = next(currBlock);
     }
-
-    struct eblock *freeBlock = (struct eblock *) freePtr;
-    freeBlock->isFree = 1;
+    currBlock->isFree = 1;
     // printf("final found = %d\n", found);
-    if(count + sizeof(struct eblock) + freeBlock->dataSize < default_size && next(freeBlock)->isFree == 1)
+    if(count + sizeof(struct eblock) + currBlock->dataSize < default_size && next(currBlock)->isFree == 1)
     {
-        printf("consolidated after\n");
-        freeBlock->dataSize += next(freeBlock)->dataSize + sizeof(struct eblock);
+        // printf("consolidated after\n");
+        currBlock->dataSize += next(currBlock)->dataSize + sizeof(struct eblock);
     }
     if(prevBlock != NULL && prevBlock->isFree == 1)
     {
-        printf("consolidated before\n");
-        prevBlock->dataSize += freeBlock->dataSize + sizeof(struct eblock);
+        // printf("consolidated before\n");
+        prevBlock->dataSize += currBlock->dataSize + sizeof(struct eblock);
     }
 }
 
