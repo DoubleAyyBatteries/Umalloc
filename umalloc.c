@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include "umalloc.h"
 
 #define default_size 10485760
@@ -47,10 +48,10 @@ void newEBlock(struct eblock *recentlyAllocated, int size, int index)
     memcpy(&heap[index], newKid, sizeof(struct eblock));
 }
 
-void *umalloc(size_t bytes)
+void *umalloc(size_t bytes, char* file, int line)
 {
 
-    if (bytes <= 0)
+    if (bytes <= 0 || bytes >= default_size - sizeof(struct eblock) + 1)
     {
         return NULL;
     }
@@ -68,8 +69,10 @@ void *umalloc(size_t bytes)
         newEBlock(head, assigned_bytes + sizeof(struct eblock), sizeof(struct eblock) + assigned_bytes);
         head->isFree = 0;
         head->dataSize = assigned_bytes;
-        return head;
         
+        char *result = (char *) head;
+        result += sizeof(struct eblock);
+        return (void*)result;
     }
     else
     {
@@ -83,10 +86,10 @@ void *umalloc(size_t bytes)
             }
             else
             {
-                printf("before init = %d\n", init);
+                // printf("before init = %d\n", init);
                 init += temp->dataSize + sizeof(struct eblock);
                 temp = next(temp);
-                printf("init = %d\n", init);
+                // printf("init = %d\n", init);
             }
         }
         if(init >= default_size)
@@ -99,54 +102,74 @@ void *umalloc(size_t bytes)
             newEBlock(temp, assigned_bytes + sizeof(struct eblock), init + sizeof(struct eblock) + assigned_bytes);
             temp->isFree = 0;
             temp->dataSize = assigned_bytes;
-            return temp;
+
+            char *result = (char *) temp;
+            result += sizeof(struct eblock);
+            return (void*)result;
         }
         else
         {
             //temp->dataSize only enough space for assigned_bytes (assigned_bytes <= temp->dataSize AND temp->dataSize < assigned_bytes + sizeof(struct eblock) + 8)
             temp->isFree = 0;
-            return temp;
+            char *result = (char *) temp;
+            result += sizeof(struct eblock);
+            return (void*)result;
         }
         return NULL;
     }
 }
 
-void ufree(void *ptr)
+void ufree(void *ptr, char* file, int line)
 {
     if(ptr == NULL)
     {
         return;
     }
 
-    struct eblock *freePtr = (struct eBlock*)&ptr;
+    struct eblock *currBlock = head;
+    struct eblock *prevBlock = NULL;
+    char *freePtr = ((char*) ptr) - sizeof(struct eblock);
+    int count = 0;
+    while(count + currBlock->dataSize + sizeof(struct eblock) <= default_size)
+    {
+        if(freePtr == &heap[count])
+        {
+            
+            printf("found block!\n");
+            break;
+        }
+        count += sizeof(struct eblock) + currBlock->dataSize;
+        prevBlock = currBlock;
+        currBlock = next(currBlock);
+    }
 
-    freePtr->isFree = 1;
-    if(next(freePtr)->isFree == 1)
+    struct eblock *freeBlock = (struct eblock *) freePtr;
+    freeBlock->isFree = 1;
+    // printf("final found = %d\n", found);
+    if(count + sizeof(struct eblock) + freeBlock->dataSize < default_size && next(freeBlock)->isFree == 1)
     {
-        freePtr->dataSize += next(freePtr)->dataSize + sizeof(struct eblock);
+        printf("consolidated after\n");
+        freeBlock->dataSize += next(freeBlock)->dataSize + sizeof(struct eblock);
     }
-    struct eblock *temp = head;
-    while(next(temp) != freePtr)
+    if(prevBlock != NULL && prevBlock->isFree == 1)
     {
-        temp = next(temp);
-    }
-    if(temp->isFree == 1)
-    {
-        temp->dataSize += freePtr->dataSize + sizeof(struct eblock);
+        printf("consolidated before\n");
+        prevBlock->dataSize += freeBlock->dataSize + sizeof(struct eblock);
     }
 }
 
 void printArray()
 {
-    for(int i = 0; i < default_size; i++)
-    {
-        if(heap[i] != 0)
-        {
-            printf("heap[%d] = %d\n", i, heap[i]);
-            printf("heap[%d]->isFree = %d\n", i, next(head)->isFree);
-            printf("heap[%d]->dataSize = %ld\n", i, next(head)->dataSize);
-        }
-    }
+    // struct eblock *curr = head;
+    // for(int i = 0; i < default_size; i++)
+    // {
+    //     if(heap[i] != 0)
+    //     {
+    //         printf("heap[%d] = %d\n", i, heap[i]);
+    //         printf("heap[%d]->isFree = %d\n", i, curr->isFree);
+    //         printf("heap[%d]->dataSize = %ld\n", i, curr->dataSize);
+    //     }
+    // }
     struct eblock *temp = head;
     int count = 0;
     while(count + temp->dataSize + sizeof(struct eblock) <= default_size)
@@ -161,9 +184,22 @@ void printArray()
 
 int main(int argc, char *argv[])
 {
-    umalloc(1048576);
-    umalloc(10485760);
+    char *x = (char*)malloc(5);
+    char *y = (char*)malloc(5);
+    char *z = (char*)malloc(3);
+    char *a = (char*)malloc(3);
+    *x = "pinky";
+    *y = "brain";
+    *z = "and";
+    *a = "the";
     printArray();
+    free(x);
+    printArray();
+    free(y);
+    printArray();
+    free(a);
+    printArray();
+    // printArray();
     // size_t temp;
     // memcpy(&temp, &heap[8], sizeof(size_t));
     // printf("%ld", temp);
