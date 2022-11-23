@@ -1,8 +1,4 @@
-#include <stdio.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
+
 #include "umalloc.h"
 
 #define default_size 10485760
@@ -69,7 +65,7 @@ void *umalloc(size_t bytes, char* file, int line)
         newEBlock(head, assigned_bytes + sizeof(struct eblock), sizeof(struct eblock) + assigned_bytes);
         head->isFree = 0;
         head->dataSize = assigned_bytes;
-        
+
         char *result = (char *) head;
         result += sizeof(struct eblock);
         return (void*)result;
@@ -179,25 +175,161 @@ void printArray()
     }
 }
 
+void prettyPrint()
+{
+    struct eblock *temp = head;
+    int count = 0;
+    int inUse = 0;
+    int free = default_size;
+    while(count + temp->dataSize + sizeof(struct eblock) <= default_size)
+    {
+        if(temp->isFree == 0)
+        {
+            free -= temp->dataSize;
+            inUse += temp->dataSize;
+        }
+        free -= sizeof(struct eblock);
+        inUse += sizeof(struct eblock);
+        count += temp->dataSize + sizeof(struct eblock);
+        temp = next(temp);
+    }
+    printf("Amount of Data in Use: %d bytes\nAmount of Data Available: %d bytes\n", inUse, free);
+}
+
 int main(int argc, char *argv[])
 {
-    char *x = (char*)malloc(5);
-    char *y = (char*)malloc(5);
-    char *z = (char*)malloc(3);
-    char *a = (char*)malloc(3);
-    *x = "pinky";
-    *y = "brain";
-    *z = "and";
-    *a = "the";
-    printArray();
+    int* x;
+    int* y;
+    int size;
+    int* pointers[10000];
+
+    //case 0: Consistency
+    x = (int *) malloc(1);
+    *x = 100;
+    int address0 = x;
     free(x);
-    printArray();
+    x = (int *) malloc(1);
+    int address1 = x;
+    printf("case 0:\ndo the addresses match? (1 is YES! 0 is NO!) %d\n", address0 == address1);
+    free(x);
+    prettyPrint();
+
+    //case 1: Maximization
+    size = 1;
+    x = (int *) malloc(size);
+    printf("\ncase 1:\n");
+    while(x != NULL)
+    {
+        printf("Success! size = %d, doubling...\n", size);
+        free(x);
+        size = size * 2;
+        x = (int *) malloc(size);
+    }
+    printf("size = %d produced NULL, halving...\n", size);
+    size = size / 2;
+    x = (int *) malloc(size);
+    while(x == NULL)
+    {
+        printf("size = %d also produced NULL, halving...\n", size);
+        size = size / 2;
+        x = (int *) malloc(size);
+    }
+    printf("size = %d successful! freeing...\n", size);
+    free(x);
+    prettyPrint();
+
+
+    //case 2: Basic Coalescence
+    size = 1;
+    x = (int *) malloc(size);
+    printf("\ncase 2:\n");
+    while(x != NULL)
+    {
+        free(x);
+        size = size * 2;
+        x = (int *) malloc(size);
+    }
+    size = size / 2;
+    x = (int *) malloc(size);
+    while(x == NULL)
+    {
+        size = size / 2;
+        x = (int *) malloc(size);
+    }
+    printf("allocated 1/2 of maximal allocation where size = %d\n", size);
+    size = size / 2;
+    y = (int *) malloc(size);
+    printf("allocated 1/4 of maximal allocation where size = %d\n", size);
+    free(x);
+    printf("freed pointer 1\n");
     free(y);
-    printArray();
-    free(a);
-    printArray();
-    // printArray();
-    // size_t temp;
-    // memcpy(&temp, &heap[8], sizeof(size_t));
-    // printf("%ld", temp);
+    printf("freed pointer 2\n");
+    size = default_size - sizeof(struct eblock);
+    x = (int *)malloc(size);
+    if(x == NULL)
+    {
+        printf("failed to allocate full memory\n");
+    }
+    else
+    {
+        printf("successfully allocated full memory!\n");
+    }
+    free(x);
+    prettyPrint();
+
+
+    //case 3: saturation
+    printf("\ncase 3:\n");
+    for(int i = 0; i < 9216; i++)
+    {
+        pointers[i] = (int*)malloc(1024);
+    }
+    printf("pointers is now over 9000\n");
+    for(int i = 9216; i < 10000; i++)
+    {
+        pointers[i] = (int*)malloc(1);
+        size = i;
+        if(pointers[i] == NULL)
+        {
+            printf("\nSTOP\n");
+            break;
+        }
+    }
+    printf("saturation of space (without 9216 allocations): %d\n", (size-9217));
+    prettyPrint();
+
+
+    //case 4: time overhead
+    free(pointers[size]);
+    struct timeval c4Start, c4End;
+    printf("\ncase 4:\ntime start!\n");
+    gettimeofday(&c4Start, 0);
+    pointers[size] = (int*)malloc(1);
+    gettimeofday(&c4End, 0);
+    printf("time end!\n");
+    int totalTime = (c4End.tv_sec-c4Start.tv_sec) * 1000000 + (c4End.tv_usec-c4Start.tv_usec);
+    printf("max time overhead = %d ms\n", totalTime);
+    prettyPrint();
+    
+
+    //case 5: intermediate coalescence
+    printf("\ncase 5:\nfreeing memory...\n");
+    for(int i = 0; i < size+1; i++)
+    {
+        free(pointers[i]);
+    }
+    printf("freed all of pointers\n");
+    size = default_size-sizeof(struct eblock);
+    x = (int *)malloc(size);
+    if(x == NULL)
+    {
+        printf("failed to allocate full memory\n");
+    }
+    else
+    {
+        printf("successfully allocated full memory!\n");
+    }
+    free(x);
+    prettyPrint();
+    return 0;
 }
