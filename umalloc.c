@@ -6,13 +6,6 @@
 int init = -1;
 unsigned char heap[default_size];
 
-struct eblock
-{
-    int isFree;
-    // size_t location;
-    size_t dataSize; //internal data size. Always >= user specified data size
-};
-
 struct eblock *next(struct eblock *block)
 {
     char *temp;
@@ -145,15 +138,15 @@ void ufree(void *ptr, char* file, int line)
     if(ptr == NULL)
     {
         printf("Error on free(): attempted to free() a null pointer in line %d of %s\n", line, file);
-        return NULL;
+        return;
     }
 
     char *testptr = (char *)ptr;
 
-    if(testptr < &heap[0] || testptr > &heap[default_size-1])
+    if(testptr < (char *)&heap[0] || testptr > (char *)&heap[default_size-1])
     {
         printf("Error on free(): No pointer found in line %d of %s\n", line, file);
-        return NULL;
+        return;
     }
     struct eblock *currBlock = head;
     struct eblock *prevBlock = NULL;
@@ -161,7 +154,7 @@ void ufree(void *ptr, char* file, int line)
     int count = 0;
     while(count + currBlock->dataSize + sizeof(struct eblock) <= default_size)
     {
-        if(freePtr == &heap[count])
+        if(freePtr == (char *)&heap[count])
         {
             // printf("found block!\n");
             break;
@@ -173,12 +166,12 @@ void ufree(void *ptr, char* file, int line)
     if (count + currBlock->dataSize + sizeof(struct eblock) >= default_size && (char *)currBlock != freePtr)
     {
         printf("Error on free(): Free()ing pointer that was not allocated by malloc() properly in line %d of %s\n", line, file);
-        return NULL;
+        return;
     }
 
     if(currBlock->isFree == 1){
         printf("Error on free(): Free()ing pointer that was already freed in line %d of %s\n", line, file);
-        return NULL;
+        return;
     }
     else{
         currBlock->isFree = 1;
@@ -243,8 +236,8 @@ void prettyPrint()
     printf("Amount of Data in Use: %d bytes\nAmount of Data Available: %d bytes\n", inUse, free);
 }
 
-int main(int argc, char *argv[])
-{
+// int main(int argc, char *argv[])
+// {
     // char *x = (char *)malloc(5 * sizeof(char));
     // char *y = (char *)malloc(5 * sizeof(char));
     // char *z = (char *)malloc(3 * sizeof(char));
@@ -263,5 +256,5 @@ int main(int argc, char *argv[])
     // size_t temp;
     // memcpy(&temp, &heap[8], sizeof(size_t));
     // printf("%ld", temp);
-    return 0;
-}
+    // return 0;
+// }
