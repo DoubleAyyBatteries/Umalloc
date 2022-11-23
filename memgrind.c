@@ -1,6 +1,4 @@
-
 #include <unistd.h>
-
 #include <sys/types.h>
 #include <time.h>
 #include <sys/time.h>
@@ -15,35 +13,35 @@ int main()
     int* pointers[1000000];
 
     //case 0: Consistency
-    x = (int *) malloc(1);
+    x = (int *)malloc(1);
     *x = 100;
-    int address0 = x;
+    int address0 = *x;
     free(x);
-    x = (int *) malloc(1);
-    int address1 = x;
+    x = (int *)malloc(1);
+    int address1 = *x;
     printf("case 0:\ndo the addresses match? (1 is YES! 0 is NO!) %d\n", address0 == address1);
     free(x);
 
 
     //case 1: Maximization
     size = 1;
-    x = (int *) malloc(size);
+    x = (int *)malloc(size);
     printf("\ncase 1:\n");
     while(x != NULL)
     {
         printf("Success! size = %d, doubling...\n", size);
         free(x);
         size = size * 2;
-        x = (int *) malloc(size);
+        x = (int *)malloc(size);
     }
     printf("size = %d produced NULL, halving...\n", size);
     size = size / 2;
-    x = (int *) malloc(size);
+    x = (int *)malloc(size);
     while(x == NULL)
     {
         printf("size = %d also produced NULL, halving...\n", size);
         size = size / 2;
-        x = (int *) malloc(size);
+        x = (int *)malloc(size);
     }
     printf("size = %d successful! freeing...\n", size);
     free(x);
